@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Soil Nutrient Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #1b211a 50%, #628141 40%); color: #333; line-height: 1.6; }
+        .navbar { background: #628141; padding: 1rem 2rem; box-shadow: 0 2px 10px #ebd5ab; position: sticky; top: 0; z-index: 1000; }
+        .nav-content { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 1.5rem; font-weight: bold; color: #ebd5ab; }
+        .nav-links { display: flex; gap: 2rem; list-style: none; }
+        .nav-links a { text-decoration: none; color: #fff; font-weight: 500; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .hero { text-align: center; padding: 2rem; color: #f8ee93; }
+        .section { background: #ffe482; border-radius: 15px; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
+        .section h2 { color: #108401; margin-bottom: 1.5rem; border-bottom: 3px solid #108401; }
+        
+        .sensor-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.5rem; }
+        .sensor-card { background: linear-gradient(135deg, #41cb00 0%, #0e7001 100%); color: #f8ee93; padding: 1.5rem; border-radius: 10px; text-align: center; }
+        .sensor-value { font-size: 2.2rem; font-weight: bold; }
+        
+        .history-container { overflow-x: auto; margin-top: 1rem; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #628141; color: white; }
+
+        .btn { background: #017603; color: white; padding: 0.8rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 1rem; }
+        .btn:hover { background: #08aa15; }
+        .chart-container { height: 300px; margin-top: 2rem; }
+
+        .media-wrapper { text-align: center; }
+        .media-wrapper img, .media-wrapper video { max-width: 100%; height: auto; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        
+        .status-badge { padding: 0.3rem 0.8rem; border-radius: 5px; font-weight: bold; }
+        .status-good { background: #4db24d; color: white; }
+        .status-warning { background: #ffaa00; color: white; }
+        .status-bad { background: #ff4d4d; color: white; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="logo">🌱 Nutrient Soil</div>
+            <ul class="nav-links">
+                <li><a href="#poster">Poster</a></li>
+                <li><a href="#video">Video</a></li>
+                <li><a href="#dashboard">Dashboard</a></li>
+                <li><a href="#history">History</a></li>
+                <li><a href="#visualization">Trends</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="hero">
+        <h1>IOT-ENABLED SOIL NUTRIENT CLASSIFICATION AND CROP RECOMMENDATION</h1>
+        <p>Real-time NPK & pH Monitoring</p>
+    </div>
+
+    <div class="container">
+        <section id="poster" class="section">
+            <h2>📋 Project Poster</h2>
+            <div class="media-wrapper">
+                <img src="inotekposter.png" alt="Project Poster">
+                <p style="margin-top: 1rem; color: #108401; font-style: italic;">
+                </p>
+            </div>
+        </section>
+
+        <section id="video" class="section">
+            <h2>🎥 Video Project</h2>
+            <div class="media-wrapper">
+                <video controls>
+                    <source src="inotekvideo.MOV" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <p style="margin-top: 1rem; color: #108401; font-style: italic;">
+                </p>
+            </div>
+        </section>
+
+        <section id="dashboard" class="section">
+            <h2>Real-time Data</h2>
+            <div class="sensor-grid">
+                <div class="sensor-card"><h3>Nitrogen (N)</h3><div id="n-value" class="sensor-value">--</div><small>mg/kg</small></div>
+                <div class="sensor-card"><h3>Phosphorus (P)</h3><div id="p-value" class="sensor-value">--</div><small>mg/kg</small></div>
+                <div class="sensor-card"><h3>Potassium (K)</h3><div id="k-value" class="sensor-value">--</div><small>mg/kg</small></div>
+                <div class="sensor-card"><h3>pH Level</h3><div id="ph-value" class="sensor-value">--</div><small>pH</small></div>
+                <div class="sensor-card"><h3>Moisture</h3><div id="moisture-value" class="sensor-value">--</div><small>%</small></div>
+                <div class="sensor-card"><h3>Temp</h3><div id="temp-value" class="sensor-value">--</div><small>°C</small></div>
+            </div>
+            <button class="btn" onclick="saveToHistory()">💾 SAVE TO HISTORY</button>
+        </section>
+
+        <section id="history" class="section">
+            <h2>📜 History Log</h2>
+            <div class="history-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>N</th>
+                            <th>P</th>
+                            <th>K</th>
+                            <th>pH</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-body"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="visualization" class="section">
+            <h2>📊 Nutrient Trends</h2>
+            <div class="chart-container"><canvas id="nutrientChart"></canvas></div>
+        </section>
+    </div>
+
+    <script>
+        // KONFIGURASI FIREBASE
+        const BASE_URL = 'https://nutriensoilapp-default-rtdb.asia-southeast1.firebasedatabase.app';
+        const API_KEY = '4xzx4NgjeTSLmkFjpcd3NYZgyftmyH2xbNRmssD3';
+
+        let currentData = null;
+        let nutrientChart;
+
+        // 1. Ambil data LIVE dari folder /soil
+        async function fetchLiveSensor() {
+            try {
+                const response = await fetch(`${BASE_URL}/soil.json?auth=${API_KEY}`);
+                const data = await response.json();
+                
+                console.log("Data dari Firebase:", data); // Debug
+                
+                if (data) {
+                    currentData = data;
+                    document.getElementById('n-value').innerText = data.N || 0;
+                    document.getElementById('p-value').innerText = data.P || 0;
+                    document.getElementById('k-value').innerText = data.K || 0;
+                    document.getElementById('ph-value').innerText = data.ph || 0;
+                    document.getElementById('moisture-value').innerText = data.moisture || 0;
+                    document.getElementById('temp-value').innerText = data.temperature || 0;
+                }
+            } catch (e) { 
+                console.error("Error Fetch:", e); 
+            }
+        }
+
+        // 2. Simpan data ke folder /history
+        async function saveToHistory() {
+            if (!currentData) return alert("Tiada data!");
+
+            const entry = {
+                N: currentData.N,
+                P: currentData.P,
+                K: currentData.K,
+                ph: currentData.ph,
+                moisture: currentData.moisture,
+                temperature: currentData.temperature,
+                status: currentData.status || 'Normal',
+                time: new Date().toLocaleString()
+            };
+
+            try {
+                await fetch(`${BASE_URL}/history.json?auth=${API_KEY}`, {
+                    method: 'POST',
+                    body: JSON.stringify(entry)
+                });
+                alert("Data disimpan!");
+                loadHistory();
+            } catch (e) { 
+                alert("Gagal simpan!"); 
+                console.error(e);
+            }
+        }
+
+        // 3. Papar Sejarah dari folder /history
+        async function loadHistory() {
+            try {
+                const response = await fetch(`${BASE_URL}/history.json?auth=${API_KEY}`);
+                const data = await response.json();
+                const tbody = document.getElementById('history-body');
+                tbody.innerHTML = "";
+                
+                if (data) {
+                    const entries = Object.entries(data).reverse().slice(0, 10); // 10 latest
+                    entries.forEach(([id, h]) => {
+                        tbody.innerHTML += `<tr>
+                            <td>${h.time}</td>
+                            <td>${h.N}</td>
+                            <td>${h.P}</td>
+                            <td>${h.K}</td>
+                            <td>${h.ph}</td>
+                            <td><span class="status-badge status-good">${h.status || 'Normal'}</span></td>
+                        </tr>`;
+                    });
+                    
+                    updateChart(entries);
+                }
+            } catch (e) { 
+                console.error("Error load history:", e);
+            }
+        }
+
+        // 4. Update Chart dengan data history
+        function updateChart(entries) {
+            if (!nutrientChart) return;
+            
+            const labels = [];
+            const nData = [];
+            const pData = [];
+            const kData = [];
+            
+            entries.slice(0, 5).reverse().forEach(([id, h]) => {
+                labels.push(h.time.split(',')[1] || h.time); // Ambil masa sahaja
+                nData.push(h.N || 0);
+                pData.push(h.P || 0);
+                kData.push(h.K || 0);
+            });
+            
+            nutrientChart.data.labels = labels;
+            nutrientChart.data.datasets[0].data = nData;
+            nutrientChart.data.datasets[1].data = pData;
+            nutrientChart.data.datasets[2].data = kData;
+            nutrientChart.update();
+        }
+
+        // 5. Initialize Chart
+        function initChart() {
+            const ctx = document.getElementById('nutrientChart').getContext('2d');
+            nutrientChart = new Chart(ctx, {
+                type: 'bar',
+                data: { 
+                    labels: [],
+                    datasets: [
+                        { label: 'N (mg/kg)', backgroundColor: '#ff4d4d', data: [] },
+                        { label: 'P (mg/kg)', backgroundColor: '#4d79ff', data: [] },
+                        { label: 'K (mg/kg)', backgroundColor: '#4db24d', data: [] }
+                    ]
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { display: true, text: 'Nutrient Trends (Last 5 Readings)'}
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        // 6. Auto-refresh setiap 5 saat
+        function startAutoRefresh() {
+            fetchLiveSensor();
+            loadHistory();
+            setInterval(fetchLiveSensor, 5000); // Update setiap 5 saat
+        }
+
+        // Jalankan apabila page load
+        window.onload = function() {
+            initChart();
+            startAutoRefresh();
+        };
+    </script>
+</body>
+</html>
